@@ -1,14 +1,14 @@
 
 #include "blob.hpp"
 
-
+int Blob::next_id_ = 0;
 Blob::Blob(const Event& e)
         :x_(e.x), y_(e.y), current_ts_(e.ts), 
-        dt_(1e3), is_active_(false), id_(0){
+        dt_(1e3), is_active_(false), id_(-1){
     events_ = vector<Event>();                  // clear the queue
     events_.push_back(e);                       // add the first events
-    cout << "New Blob! Added the first event to a blob. Event: " << e.info() << endl;
-    printInfo();
+    // cout << "New Blob! Added the first event to a blob. Event: " << e.info() << endl;
+    // printInfo();
 }
 
 void Blob::updateBlob(void){              // update blob's information when called.
@@ -21,15 +21,20 @@ void Blob::updateBlob(void){              // update blob's information when call
         if (e.ts < current_ts_ - dt_)        // skip old events.
             continue;
         active_event_count++;
-        cout << sum_x << endl;
         sum_x += e.x;
         sum_y += e.y;
     }
     x_ = sum_x/events_.size();
     y_ = sum_y/events_.size();
 
-    if(active_event_count > 5)              // check is active?
+    if(active_event_count > 20){              // check is active?
         is_active_ = true;
+        id_ = next_id_++;
+    }
+    else{
+        is_active_ = false;
+        id_ = -1;
+    }
 }
 
 int Blob::addEvent(Event evt){
@@ -65,4 +70,14 @@ int BlobManager::updateAllBlobs(void){
     for(int i=0; i<blobs_.size(); ++i){         // Attention! Can't use for(auto b:blobs), this is only a reference.
         blobs_[i].updateBlob();
     }
+}
+
+
+vector<Blob> BlobManager::getActiveBlobs(void){
+    vector<Blob> active_blobs;
+    for(auto b:blobs_){
+        if(b.is_active_)
+            active_blobs.push_back(b);
+    }
+    return active_blobs;
 }

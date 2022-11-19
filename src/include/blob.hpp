@@ -19,8 +19,18 @@ public:
         cout << "Blob id: " << id_ << ", active: "<<is_active_<<", at (" << x_ << ", " << y_ << "), events: " << events_.size() << endl;
     }
 
+    Blob &operator=(const Blob &b) { 
+        this->id_ = b.id_; 
+        this->events_ = b.events_;
+        this->x_ = b.x_;
+        this->y_ = b.y_;
+        this->current_ts_ = b.current_ts_;
+        this->dt_ = b.dt_;
+        this->is_active_ = b.is_active_;
+    }
+
 public:
-    // static int next_id_;
+    static int next_id_;
     int id_;
     vector<Event> events_;
     double x_, y_;
@@ -36,6 +46,7 @@ public:
     int checkBlob(const Event& e);
     int createBlob(const Event& e);
     int updateAllBlobs(void);
+    vector<Blob> getActiveBlobs(void);
 
     inline void printBlobInfo(void) {
         cout << "---------------" << endl;

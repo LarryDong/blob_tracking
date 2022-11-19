@@ -11,12 +11,13 @@ using namespace std;
 class Event{
 
 public:
-    Event() { cout << "init an empty events" << endl; }
+    // Event() { cout << "init an empty events" << endl; }
+    Event() {}
     Event(double ts, int x, int y): x(x), y(y), ts(ts)  {}
-    void print(void){cout << "[" << ts << ", " << x << ", " << y << "]" << endl;}
+    void print(void) const {cout << "[" << ts << ", " << x << ", " << y << "]" << endl;}
     string info(void) const { return ("(" + to_string(int(ts * 1e3)) + ", " + to_string(x) + ", " + to_string(y) + ")"); }
 
-    Event &operator=(const Event &e) { this->x = x, this->y = y, this->ts = ts; }
+    Event &operator=(const Event &e) {this->x = e.x; this->y = e.y; this->ts = e.ts;}
 
 public:
     int x;
