@@ -1,3 +1,10 @@
+
+build/
+data/
+.vscode/
+*.csv
+*.asv
+
 # Prerequisites
 *.d
 
