@@ -34,10 +34,10 @@ void Blob::updateBlob(void){              // update blob's information when call
         }
     }
     active_events_number_ = counter;
-    x_ = sum_x/events_.size();
-    y_ = sum_y/events_.size();
+    x_ = sum_x/active_events_number_;
+    y_ = sum_y/active_events_number_;
 
-    int th = 100;
+    int th = 200;
     if(!is_inited_){
         if(active_events_number_>=th){
             is_inited_ = true;
@@ -61,7 +61,7 @@ bool Blob::checkDead(double ts){
         else
             break;
     }
-    int th = 100;
+    int th = 200;
     if(counter >= th)
         is_dead_ = false;
     else
@@ -72,7 +72,7 @@ bool Blob::checkDead(double ts){
 
 
 ////////////////  BlobManager  ////////////////
-BlobManager::BlobManager(void) : radius_(50), blobs_(vector<Blob>()) { ; }
+BlobManager::BlobManager(void) : radius_(60), blobs_(vector<Blob>()) { ; }
 
 int BlobManager::checkBlob(const Event& e){
     // cout << "--> Check: " << e.info() << " is in existing " << blobs_.size() <<" blobs or not..." << endl;
@@ -112,14 +112,5 @@ vector<Blob> BlobManager::getActiveBlobs(void){
 int BlobManager::setDeadBlobs(double ts){
     for(int i=0; i<blobs_.size(); ++i)
         blobs_[i].checkDead(ts);
-    // cout << "Remove dead blobs before: " << ts << endl;
-    // double dt = 100;
-    // for(int i=0; i<blobs_.size(); ++i){
-    //     // cout << "Blob " << i << "'s ts: " << blobs_[i].current_ts_ << endl;
-    //     if(blobs_[i].current_ts_ + dt < ts){
-    //         blobs_[i].is_dead_ = true;
-    //         cout << "Set blob: " << i << " to dead. current ts: " << ts << ", blob's last update: " << blobs_[i].current_ts_ << endl;
-    //     }
-    // }
 }
 

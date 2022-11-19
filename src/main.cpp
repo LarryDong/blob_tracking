@@ -64,9 +64,10 @@ void drawBlobImage(Mat img, BlobManager bm){
     if(img.type()==CV_8UC1)
         cvtColor(img, img, COLOR_GRAY2BGR);
     for(auto blob:bm.getActiveBlobs()){
+        auto color = g_color_map[blob.id_];
         Point center(blob.x_, blob.y_);
-        circle(img, center, bm.radius_, g_color_map[blob.id_], 2);
-        // putText(img, "id:", center, cv::FONT_HERSHEY_PLAIN, 8, color);
+        circle(img, center, bm.radius_, color, 2);
+        putText(img, "id:"+to_string(blob.id_), center+Point(10,-5), cv::FONT_ITALIC, 1, color);
     }
     imshow("blobs", img);
     waitKey(1);
@@ -89,17 +90,16 @@ int main(){
     BlobManager bm;
     int batch_number=1000;
     generateRandomColorMap();
+    int idx = 0;
     for(int i=0; i<int(full_events.size()/batch_number); ++i){
+        cout << "----------   " << idx++ << endl;
         vector<Event> events;
         events.resize(batch_number);
         copy(full_events.begin()+i*batch_number, full_events.begin()+(i+1)*batch_number, events.begin());
-        // cout << "-----> " << events.size() << endl;
         for (auto e : events){
             int blob_id = bm.checkBlob(e);
-            if (blob_id == -1){
-                // cout << "<-- Event not belong to any blobs, create a new blob." << endl;
+            if (blob_id == -1)
                 bm.createBlob(e);
-            }
             else
                 bm.blobs_[blob_id].addEvent(e);
         }
@@ -107,6 +107,13 @@ int main(){
         bm.updateAllBlobs();
         bm.setDeadBlobs(events[events.size()-1].ts);
         bm.printBlobInfo(true);
+
+        // TODO: id 1 is drifted
+        // if (idx >= 20){
+        //     for(auto ee: bm.blobs_[1].events_){
+        //         e.print();
+        //     }
+        // }
 
         Mat img = getEventFrame(events);
         drawBlobImage(img, bm);
