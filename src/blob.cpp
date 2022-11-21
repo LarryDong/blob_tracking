@@ -1,5 +1,9 @@
 
 #include "blob.hpp"
+#include <gflags/gflags.h>
+
+DECLARE_int32(blob_active_thresold);
+DECLARE_int32(blob_radius);
 
 int Blob::next_id_ = 0;
 Blob::Blob(const Event& e)
@@ -12,57 +16,56 @@ Blob::Blob(const Event& e)
         id_(-1),
         active_events_number_(0)
 {
-    events_ = vector<Event>();                  // clear the queue
+    events_ = deque<Event>();                   // clear the queue
     events_.push_back(e);                       // add the first events
 }
 
 void Blob::updateBlob(void){              // update blob's information when called.
-    // update x_, y_, status;
-    // cout << " updating blob: " << id_ << endl;
-    double sum_x=0, sum_y = 0;
-    int active_event_count = 0;
-    int counter = 0;
-    for (int i=events_.size()-1; i>=0; --i){
-        Event e = events_[i];
-        if(e.ts > current_ts_ - dt_){
-            counter++;
-            sum_x += e.x;
-            sum_y += e.y;
+    double sum_x = 0, sum_y = 0;
+    for(auto it=events_.begin(); it!=events_.end();){
+        // remove `old` and `far events to make the center update.
+        if((it->ts < current_ts_ - dt_) 
+                    || (abs(it->x - x_) > FLAGS_blob_radius/2)
+                    || (abs(it->y - y_) > FLAGS_blob_radius/2)){
+            it = events_.erase(it);
         }
         else{
-            break;
+            sum_x += it->x;
+            sum_y += it->y;
+            it++;
         }
     }
-    active_events_number_ = counter;
+    active_events_number_ = events_.size();
     x_ = sum_x/active_events_number_;
     y_ = sum_y/active_events_number_;
 
-    int th = 200;
-    if(!is_inited_){
-        if(active_events_number_>=th){
+    if(!is_inited_){                            // init a blob.
+        if (active_events_number_ >= FLAGS_blob_active_thresold){
             is_inited_ = true;
-            id_ = next_id_++;
+            id_ = next_id_++;                   // set ID.
+            // cout << "Init blob: " << id_ << " at: " << x_ << ", " << y_ << endl;
         }
     }
 }
 
-int Blob::addEvent(Event evt){
+int Blob::addEvent(const Event& evt){
     events_.push_back(evt);
     current_ts_ = evt.ts;
 }
 
-bool Blob::checkDead(double ts){
-    int counter = 0;
-    for (int i=events_.size()-1; i>=0; --i){
-        Event e = events_[i];
-        if (e.ts > ts - dt_){
-            counter++;
-        }
+bool Blob::checkAndSetDead(double ts){
+    if(events_.size()==0){
+        // cout << "Error. Unexpected HERE!!!" << endl;
+        is_dead_ = true;
+        return true;
+    }
+    while(events_.size()!=0){                                           // remove old events
+        if (events_.front().ts < current_ts_ - dt_)
+            events_.pop_front();
         else
             break;
     }
-    int th = 200;
-    if(counter >= th)
+    if(events_.size() >= FLAGS_blob_active_thresold)
         is_dead_ = false;
     else
         is_dead_ = true;
@@ -71,25 +74,46 @@ bool Blob::checkDead(double ts){
 
 
 
-////////////////  BlobManager  ////////////////
-BlobManager::BlobManager(void) : radius_(60), blobs_(vector<Blob>()) { ; }
 
-int BlobManager::checkBlob(const Event& e){
-    // cout << "--> Check: " << e.info() << " is in existing " << blobs_.size() <<" blobs or not..." << endl;
-    int id = -1;
-    for (int i=0; i<blobs_.size(); ++i){      // TODO: what if an event belongs to two blob??
-        if(checkInRange(e, blobs_[i], radius_)){
-            // cout << "<-- Yes! belong to blob: " << i << endl;
-            id = i;
-            break;
+////////////////  BlobManager  ////////////////
+BlobManager::BlobManager(int radius) : radius_(radius), blobs_(deque<Blob>()) { ; }
+
+// find nearest blob's id
+int BlobManager::findNearestBlob(const Event &e){
+    int nearest_index = -1;                             // this is the nearest blob's index, not the blob's ID.
+    int min_distance = 1e8;
+    // first check for inited blobs. Find nearest.
+    for (int i=0; i<blobs_.size(); ++i){
+        const Blob& b = blobs_[i];
+        if(b.is_dead_ || !b.is_inited_)
+            continue;
+        int dist = (b.x_-e.x)*(b.x_-e.x) + (b.y_-e.y)*(b.y_-e.y);
+        // int dist = abs(b.x_-e.x) + abs(b.y_-e.y);
+        if (dist < min_distance){
+            nearest_index = i;
+            min_distance = dist;
         }
     }
-    return id;
+    if(min_distance < radius_*radius_)
+        return nearest_index;
+
+    // if not belong to any active blob, then find a near (un-inited) blob.
+    for (int i=0; i<blobs_.size(); ++i){
+        const Blob& b = blobs_[i];
+        if(b.is_dead_ || b.is_inited_)
+            continue;
+        int dist = (b.x_-e.x)*(b.x_-e.x) + (b.y_-e.y)*(b.y_-e.y);
+        // int dist = abs(b.x_-e.x) + abs(b.y_-e.y);
+        if (dist < 20*20)           // use a smaller size for init.
+            return i;
+    }
+    return -1;
 }
+
 
 int BlobManager::createBlob(const Event& e){
     blobs_.push_back(Blob(e));
-    return blobs_.size()-1;             // return new_blob's id.
+    return blobs_.size()-1;                     // return new_blob's id.
 }
 
 
@@ -100,17 +124,30 @@ int BlobManager::updateAllBlobs(void){
 }
 
 
-vector<Blob> BlobManager::getActiveBlobs(void){
-    vector<Blob> active_blobs;
-    for(auto b:blobs_){
-        if(b.is_inited_ && (b.is_dead_==false))
+deque<Blob> BlobManager::getActiveBlobs(void){
+    deque<Blob> active_blobs;
+    for(const Blob& b:blobs_){
+        if(b.is_inited_)
             active_blobs.push_back(b);
+        if(b.is_dead_)
+            cout << "Warning. `Dead` blobs should be removed already." << endl;
     }
     return active_blobs;
 }
 
-int BlobManager::setDeadBlobs(double ts){
-    for(int i=0; i<blobs_.size(); ++i)
-        blobs_[i].checkDead(ts);
-}
 
+int BlobManager::removeDeadBlobs(double ts){
+    int num = 0;
+    // cout << "blob size: " << blobs_.size() << endl;
+    for(auto it=blobs_.begin(); it!=blobs_.end();){
+        if(it->checkAndSetDead(ts)){
+            it = blobs_.erase(it);              // TODO: segmentation fault here!!
+            num++;
+        }
+        else{
+            it++;
+            // cout << "iter++" << endl;
+        }
+    }
+    return num;
+}

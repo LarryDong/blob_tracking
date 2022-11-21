@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <vector>
+#include <deque>
+
 #include "event.hpp"
 
 using namespace std;
@@ -11,10 +13,11 @@ class Blob{
 public:
     Blob() { cout << "Blob empyt init not allowed." << endl; std::abort(); }
     Blob(const Event& e);
+    ~Blob() {}
 
     void updateBlob(void);
-    int addEvent(Event evt);            // 
-    bool checkDead(double ts);          // check the blob is dead or not.
+    int addEvent(const Event& evt);            // 
+    bool checkAndSetDead(double ts);          // check the blob is dead or not.
 
     inline void printInfo(void) const { 
         cout << "id: " << id_ << ", inited/dead:"<<is_inited_<<"/"<<is_dead_<<", (" << x_ << ", " << y_ << "), active: " << active_events_number_ << endl;
@@ -35,30 +38,28 @@ public:
 public:
     static int next_id_;
     int id_;
-    vector<Event> events_;
+    deque<Event> events_;
     double x_, y_;
     double current_ts_, dt_;        // dt_, duration
     bool is_inited_, is_dead_;
-    // double r_;
-
-    // debug
     int active_events_number_;
 };
 
 
 class BlobManager{
 public:
-    BlobManager();
+    BlobManager(int radius);
     int checkBlob(const Event& e);
     int createBlob(const Event& e);
+    int findNearestBlob(const Event &e);
     int updateAllBlobs(void);
-    vector<Blob> getActiveBlobs(void);
-    int setDeadBlobs(double ts);           // check if some blobs are dead.
+    deque<Blob> getActiveBlobs(void);
+    int removeDeadBlobs(double ts);
 
     inline void printBlobInfo(bool only_active) {
         cout << "---------------" << endl;
         if(only_active){
-            vector<Blob> active_blobs = getActiveBlobs();
+            deque<Blob> active_blobs = getActiveBlobs();
             cout << "Valid blobs: " << active_blobs.size() << endl;
             for(int i=0; i<active_blobs.size(); ++i){
                 active_blobs[i].printInfo();
@@ -73,7 +74,7 @@ public:
     }
 
 public:
-    vector<Blob> blobs_;
+    deque<Blob> blobs_;
     double radius_;
 
 private:

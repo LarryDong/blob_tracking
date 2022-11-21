@@ -14,6 +14,8 @@ public:
     // Event() { cout << "init an empty events" << endl; }
     Event() {}
     Event(double ts, int x, int y): x(x), y(y), ts(ts)  {}
+    ~Event() {}
+
     void print(void) const {cout << "[" << ts << ", " << x << ", " << y << "]" << endl;}
     string info(void) const { return ("(" + to_string(int(ts * 1e3)) + ", " + to_string(x) + ", " + to_string(y) + ")"); }
 

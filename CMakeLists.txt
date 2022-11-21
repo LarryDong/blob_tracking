@@ -15,6 +15,6 @@ add_executable(${PROJECT_NAME}
 )
 
 target_link_libraries(
-    ${PROJECT_NAME} opencv_core opencv_highgui opencv_imgproc
+    ${PROJECT_NAME} opencv_core opencv_highgui opencv_imgproc gflags
 )
 

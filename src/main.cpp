@@ -4,6 +4,7 @@
 #include <istream>
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include <gflags/gflags.h>
 
 #include "event.hpp"
 #include "blob.hpp"
@@ -15,6 +16,19 @@ using namespace cv;
 
 #define IMAGE_WIDTH 346
 #define IMAGE_HEIGHT 260
+
+
+// parameters for blob's
+DEFINE_int32(blob_radius, 10, "blob radius");
+DEFINE_int32(blob_active_thresold, 20, "number of events for active blob");
+DEFINE_int32(blob_lifetime, 1e2, "life of a blob since last update, in ms");
+
+
+// parameters for drawing
+DEFINE_int32(max_load_events, 1e6, "load events from file to avoid to huge file");
+DEFINE_int32(batch_number, 1e4, "process number of events for view/update");
+
+
 
 
 vector<Scalar> g_color_map;
@@ -54,17 +68,23 @@ vector<Event> loadEvents(string filename, long int max_line=1e6){
 
 Mat getEventFrame(const vector<Event>& evts){
     Mat img = Mat::zeros(Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_8UC1);
-    for(auto e:evts)
+    for(const Event& e:evts){
+        if(e.y >= IMAGE_HEIGHT || e.x >= IMAGE_WIDTH){
+            cout << "Error. Pixel out-of image size. Please check." << endl;
+            std::abort();
+        }
         img.at<uchar>(e.y, e.x) = 255;
+    }
+        
     return img;
 }
 
 void drawBlobImage(Mat img, BlobManager bm){
     cv::RNG rng(5);
-    if(img.type()==CV_8UC1)
+    if (img.type() == CV_8UC1)
         cvtColor(img, img, COLOR_GRAY2BGR);
-    for(auto blob:bm.getActiveBlobs()){
-        auto color = g_color_map[blob.id_];
+    for(const Blob& blob : bm.getActiveBlobs()){
+        auto color = g_color_map[blob.id_%100];
         Point center(blob.x_, blob.y_);
         circle(img, center, bm.radius_, color, 2);
         putText(img, "id:"+to_string(blob.id_), center+Point(10,-5), cv::FONT_ITALIC, 1, color);
@@ -77,27 +97,29 @@ void drawBlobImage(Mat img, BlobManager bm){
 }
 
 
-int main(){
+int main(int argc, char** argv){
+	google::ParseCommandLineFlags(&argc, &argv, true);
     cout << "Blob tracking." << endl;
-
-    // STEP 1. Load events
+    
+    // Load events
     // string path = "/home/larrydong/codeGit/blob_tracking/data/1.csv";
     string path = "/home/larrydong/codeGit/blob_tracking/src/data_output.csv";
     vector<Event> full_events = loadEvents(path);
     cout << "--> loaded " << full_events.size() << " events." << endl;
 
 
-    BlobManager bm;
+    BlobManager bm(FLAGS_blob_radius);
     int batch_number=1000;
     generateRandomColorMap();
     int idx = 0;
     for(int i=0; i<int(full_events.size()/batch_number); ++i){
-        cout << "----------   " << idx++ << endl;
         vector<Event> events;
+        // TODO: optimize this copy process. Not necessary.
         events.resize(batch_number);
         copy(full_events.begin()+i*batch_number, full_events.begin()+(i+1)*batch_number, events.begin());
+        ///////////////////////////////////////////////////////////////
         for (auto e : events){
-            int blob_id = bm.checkBlob(e);
+            int blob_id = bm.findNearestBlob(e);
             if (blob_id == -1)
                 bm.createBlob(e);
             else
@@ -105,25 +127,12 @@ int main(){
         }
         // update all blobs
         bm.updateAllBlobs();
-        bm.setDeadBlobs(events[events.size()-1].ts);
-        bm.printBlobInfo(true);
-
-        // TODO: id 1 is drifted
-        // if (idx >= 20){
-        //     for(auto ee: bm.blobs_[1].events_){
-        //         e.print();
-        //     }
-        // }
+        bm.removeDeadBlobs(events[events.size()-1].ts);
+        // bm.printBlobInfo(true);
 
         Mat img = getEventFrame(events);
         drawBlobImage(img, bm);
     }
-    
-
-    // // STEP 2. Check blobs.
-
-    
-
     return 0;
 }
 
