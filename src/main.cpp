@@ -5,7 +5,6 @@
 #include <vector>
 #include <opencv2/opencv.hpp>
 #include <gflags/gflags.h>
-
 #include "event.hpp"
 #include "blob.hpp"
 
@@ -19,15 +18,14 @@ using namespace cv;
 
 
 // parameters for blob's
-DEFINE_int32(blob_radius, 10, "blob radius");
-DEFINE_int32(blob_active_thresold, 20, "number of events for active blob");
+DEFINE_int32(blob_radius, 50, "blob radius");
+DEFINE_int32(blob_active_thresold, 100, "number of events for active blob");
 DEFINE_int32(blob_lifetime, 1e2, "life of a blob since last update, in ms");
 
 
 // parameters for drawing
 DEFINE_int32(max_load_events, 1e6, "load events from file to avoid to huge file");
 DEFINE_int32(batch_number, 1e4, "process number of events for view/update");
-
 
 
 
@@ -85,9 +83,11 @@ void drawBlobImage(Mat img, BlobManager bm){
         cvtColor(img, img, COLOR_GRAY2BGR);
     for(const Blob& blob : bm.getActiveBlobs()){
         auto color = g_color_map[blob.id_%100];
+        double r = FLAGS_blob_radius;
         Point center(blob.x_, blob.y_);
-        circle(img, center, bm.radius_, color, 2);
-        putText(img, "id:"+to_string(blob.id_), center+Point(10,-5), cv::FONT_ITALIC, 1, color);
+        circle(img, center, 2, color, -1);          // center point
+        circle(img, center, r, color, 1);           // draw circle
+        putText(img, "id:"+to_string(blob.id_), center+Point(r, -r), cv::FONT_ITALIC, 0.4, color);
     }
     imshow("blobs", img);
     waitKey(1);
@@ -112,7 +112,9 @@ int main(int argc, char** argv){
     int batch_number=1000;
     generateRandomColorMap();
     int idx = 0;
+    double ts = 0;
     for(int i=0; i<int(full_events.size()/batch_number); ++i){
+        cout << " -->  Processing batch: " << i << ", ts: " << ts << endl;
         vector<Event> events;
         // TODO: optimize this copy process. Not necessary.
         events.resize(batch_number);
@@ -126,8 +128,9 @@ int main(int argc, char** argv){
                 bm.blobs_[blob_id].addEvent(e);
         }
         // update all blobs
-        bm.updateAllBlobs();
-        bm.removeDeadBlobs(events[events.size()-1].ts);
+        ts = events[events.size()-1].ts;
+        bm.updateAllBlobs(ts);
+        bm.removeDeadBlobs(ts);
         // bm.printBlobInfo(true);
 
         Mat img = getEventFrame(events);

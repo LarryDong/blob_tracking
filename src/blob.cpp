@@ -20,11 +20,11 @@ Blob::Blob(const Event& e)
     events_.push_back(e);                       // add the first events
 }
 
-void Blob::updateBlob(void){              // update blob's information when called.
+void Blob::updateBlob(double ts){              // update blob's information when called.
     double sum_x = 0, sum_y = 0;
     for(auto it=events_.begin(); it!=events_.end();){
         // remove `old` and `far events to make the center update.
-        if((it->ts < current_ts_ - dt_) 
+        if((it->ts < ts - dt_)                                 // TODO: should use the newest ts.
                     || (abs(it->x - x_) > FLAGS_blob_radius/2)
                     || (abs(it->y - y_) > FLAGS_blob_radius/2)){
             it = events_.erase(it);
@@ -60,7 +60,11 @@ bool Blob::checkAndSetDead(double ts){
         return true;
     }
     while(events_.size()!=0){                                           // remove old events
-        if (events_.front().ts < current_ts_ - dt_)
+        // if(id_ == 4){
+        //     cout << "Debug for id4" << endl;
+        //     cout << events_.front().ts << ", " << current_ts_ - dt_ << endl;
+        // }
+        if (events_.front().ts < ts - dt_)
             events_.pop_front();
         else
             break;
@@ -117,9 +121,9 @@ int BlobManager::createBlob(const Event& e){
 }
 
 
-int BlobManager::updateAllBlobs(void){
+int BlobManager::updateAllBlobs(double ts){
     for(int i=0; i<blobs_.size(); ++i){         // Attention! Can't use for(auto b:blobs), this is only a reference.
-        blobs_[i].updateBlob();
+        blobs_[i].updateBlob(ts);
     }
 }
 

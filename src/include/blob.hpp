@@ -15,7 +15,7 @@ public:
     Blob(const Event& e);
     ~Blob() {}
 
-    void updateBlob(void);
+    void updateBlob(double ts);
     int addEvent(const Event& evt);            // 
     bool checkAndSetDead(double ts);          // check the blob is dead or not.
 
@@ -52,7 +52,7 @@ public:
     int checkBlob(const Event& e);
     int createBlob(const Event& e);
     int findNearestBlob(const Event &e);
-    int updateAllBlobs(void);
+    int updateAllBlobs(double ts);
     deque<Blob> getActiveBlobs(void);
     int removeDeadBlobs(double ts);
 
