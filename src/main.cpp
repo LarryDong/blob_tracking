@@ -115,12 +115,11 @@ int main(int argc, char** argv){
     double ts = 0;
     for(int i=0; i<int(full_events.size()/batch_number); ++i){
         cout << " -->  Processing batch: " << i << ", ts: " << ts << endl;
+        // avoid Copy process. optimize this copy process. Not necessary.
         vector<Event> events;
-        // TODO: optimize this copy process. Not necessary.
         events.resize(batch_number);
         copy(full_events.begin()+i*batch_number, full_events.begin()+(i+1)*batch_number, events.begin());
-        ///////////////////////////////////////////////////////////////
-        for (auto e : events){
+        for (const Event& e:events){
             int blob_id = bm.findNearestBlob(e);
             if (blob_id == -1)
                 bm.createBlob(e);
@@ -128,7 +127,7 @@ int main(int argc, char** argv){
                 bm.blobs_[blob_id].addEvent(e);
         }
         // update all blobs
-        ts = events[events.size()-1].ts;
+        ts = events.back().ts;
         bm.updateAllBlobs(ts);
         bm.removeDeadBlobs(ts);
         // bm.printBlobInfo(true);

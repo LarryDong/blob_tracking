@@ -22,18 +22,31 @@ Blob::Blob(const Event& e)
 
 void Blob::updateBlob(double ts){              // update blob's information when called.
     double sum_x = 0, sum_y = 0;
-    for(auto it=events_.begin(); it!=events_.end();){
-        // remove `old` and `far events to make the center update.
-        if((it->ts < ts - dt_)                                 // TODO: should use the newest ts.
-                    || (abs(it->x - x_) > FLAGS_blob_radius/2)
-                    || (abs(it->y - y_) > FLAGS_blob_radius/2)){
-            it = events_.erase(it);
-        }
-        else{
-            sum_x += it->x;
-            sum_y += it->y;
-            it++;
-        }
+    // // delete both position and time.
+    // for(auto it=events_.begin(); it!=events_.end();){
+    //     // remove `old` and `far events to make the center update.
+    //     if((it->ts < ts - dt_)                                 // TODO: should use the newest ts.
+    //                 || (abs(it->x - x_) > FLAGS_blob_radius/2)
+    //                 || (abs(it->y - y_) > FLAGS_blob_radius/2)){
+    //         it = events_.erase(it);
+    //     }
+    //     else{
+    //         sum_x += it->x;
+    //         sum_y += it->y;
+    //         it++;
+    //     }
+    // }
+
+    // use a faster version. (no delete position)
+    while(events_.size()!=0){
+        if (events_.front().ts < ts - dt_)
+            events_.pop_front();
+        else
+            break;
+    }
+    for(const Event& e:events_){
+        sum_x += e.x;
+        sum_y += e.y;
     }
     active_events_number_ = events_.size();
     x_ = sum_x/active_events_number_;
