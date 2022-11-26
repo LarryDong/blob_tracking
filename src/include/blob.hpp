@@ -14,7 +14,6 @@ public:
     Blob() { cout << "Blob empyt init not allowed." << endl; std::abort(); }
     Blob(const Event& e);
     ~Blob() {}
-
     void updateBlob(double ts);
     int addEvent(const Event& evt);            // 
     bool checkAndSetDead(double ts);          // check the blob is dead or not.
@@ -40,7 +39,7 @@ public:
     int id_;
     deque<Event> events_;
     double x_, y_;
-    double current_ts_, dt_;        // dt_, duration
+    double current_ts_, dt_;
     bool is_inited_, is_dead_;
     int active_events_number_;
 };
@@ -53,7 +52,7 @@ public:
     int createBlob(const Event& e);
     int findNearestBlob(const Event &e);
     int updateAllBlobs(double ts);
-    deque<Blob> getActiveBlobs(void);
+    deque<Blob> getActiveBlobs(void) const;
     int removeDeadBlobs(double ts);
 
     inline void printBlobInfo(bool only_active) {

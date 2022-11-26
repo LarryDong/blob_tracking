@@ -73,10 +73,6 @@ bool Blob::checkAndSetDead(double ts){
         return true;
     }
     while(events_.size()!=0){                                           // remove old events
-        // if(id_ == 4){
-        //     cout << "Debug for id4" << endl;
-        //     cout << events_.front().ts << ", " << current_ts_ - dt_ << endl;
-        // }
         if (events_.front().ts < ts - dt_)
             events_.pop_front();
         else
@@ -141,7 +137,7 @@ int BlobManager::updateAllBlobs(double ts){
 }
 
 
-deque<Blob> BlobManager::getActiveBlobs(void){
+deque<Blob> BlobManager::getActiveBlobs(void) const{
     deque<Blob> active_blobs;
     for(const Blob& b:blobs_){
         if(b.is_inited_)
@@ -158,13 +154,11 @@ int BlobManager::removeDeadBlobs(double ts){
     // cout << "blob size: " << blobs_.size() << endl;
     for(auto it=blobs_.begin(); it!=blobs_.end();){
         if(it->checkAndSetDead(ts)){
-            it = blobs_.erase(it);              // TODO: segmentation fault here!!
+            it = blobs_.erase(it);
             num++;
         }
-        else{
+        else
             it++;
-            // cout << "iter++" << endl;
-        }
     }
     return num;
 }

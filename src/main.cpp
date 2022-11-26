@@ -18,13 +18,13 @@ using namespace cv;
 
 
 // parameters for blob's
-DEFINE_int32(blob_radius, 50, "blob radius");
-DEFINE_int32(blob_active_thresold, 100, "number of events for active blob");
+DEFINE_int32(blob_radius, 30, "blob radius");
+DEFINE_int32(blob_active_thresold, 50, "number of events for active blob");
 DEFINE_int32(blob_lifetime, 1e2, "life of a blob since last update, in ms");
 
 
 // parameters for drawing
-DEFINE_int32(max_load_events, 1e6, "load events from file to avoid to huge file");
+DEFINE_int32(max_load_events, 1e8, "load events from file to avoid to huge file");
 DEFINE_int32(batch_number, 1e4, "process number of events for view/update");
 
 
@@ -40,7 +40,7 @@ void generateRandomColorMap(void){
 }
 
 // load events from a file.
-vector<Event> loadEvents(string filename, long int max_line=1e6){
+vector<Event> loadEvents(string filename, long int max_line=FLAGS_max_load_events){
     ifstream fin(filename, ios::in);
     if (!fin){
         cout << "[Error] Cannot open file: " << filename << endl;
@@ -63,7 +63,7 @@ vector<Event> loadEvents(string filename, long int max_line=1e6){
 }
 
 
-
+// get event frame from events
 Mat getEventFrame(const vector<Event>& evts){
     Mat img = Mat::zeros(Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_8UC1);
     for(const Event& e:evts){
@@ -73,11 +73,31 @@ Mat getEventFrame(const vector<Event>& evts){
         }
         img.at<uchar>(e.y, e.x) = 255;
     }
-        
     return img;
 }
 
-void drawBlobImage(Mat img, BlobManager bm){
+// generate and save event frame.
+void generateEventFrame(const vector<Event>& events, string output_folder, int index){
+    Mat img = Mat::zeros(Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_8UC1);
+    for(const Event& e:events){
+        if(e.y >= IMAGE_HEIGHT || e.x >= IMAGE_WIDTH){
+            cout << "Error. Pixel out-of image size. Please check." << endl;
+            std::abort();
+        }
+        img.at<uchar>(e.y, e.x) = 255;
+    }
+    const string filename = output_folder + "/" + to_string(index) + ".bmp";
+    imwrite(output_folder + "/" + to_string(index) + ".bmp", img);
+}
+// load event frame frome folder.
+Mat loadEventFrame(string input_folder, int index){
+    string filename = input_folder + "/" + to_string(index) + ".bmp";
+    return imread(filename, 0);
+}
+
+
+
+Mat drawBlobImage(Mat img, const BlobManager& bm){
     cv::RNG rng(5);
     if (img.type() == CV_8UC1)
         cvtColor(img, img, COLOR_GRAY2BGR);
@@ -89,24 +109,20 @@ void drawBlobImage(Mat img, BlobManager bm){
         circle(img, center, r, color, 1);           // draw circle
         putText(img, "id:"+to_string(blob.id_), center+Point(r, -r), cv::FONT_ITALIC, 0.4, color);
     }
-    imshow("blobs", img);
-    waitKey(1);
-    int key = waitKey(0);
-    if(key == 'q')
-        std::abort();
+    return img;
 }
 
 
 int main(int argc, char** argv){
 	google::ParseCommandLineFlags(&argc, &argv, true);
     cout << "Blob tracking." << endl;
-    
+
     // Load events
     // string path = "/home/larrydong/codeGit/blob_tracking/data/1.csv";
-    string path = "/home/larrydong/codeGit/blob_tracking/src/data_output.csv";
+    string path = "/home/larrydong/codeGit/blob_tracking/src/night2_output.csv";
+    string event_frame_folder = "/home/larrydong/codeGit/blob_tracking/night_people/images";
     vector<Event> full_events = loadEvents(path);
     cout << "--> loaded " << full_events.size() << " events." << endl;
-
 
     BlobManager bm(FLAGS_blob_radius);
     int batch_number=1000;
@@ -132,8 +148,21 @@ int main(int argc, char** argv){
         bm.removeDeadBlobs(ts);
         // bm.printBlobInfo(true);
 
-        Mat img = getEventFrame(events);
-        drawBlobImage(img, bm);
+// #define LOAD_PRE_GENERATED               // can first generate event frame and then loaded to improve the speed.
+#ifdef LOAD_PRE_GENERATED
+        // Mat img = getEventFrame(events);
+        // generateEventFrame(events, event_frame_folder, i);
+#else
+        // load old image for fast-draw
+        Mat img = getEventFrame(events);                        // generate EF frome events
+        // Mat img = loadEventFrame(event_frame_folder, i);     // load EF frome events.
+        img = drawBlobImage(img, bm);
+        string ts_str = to_string(int(ts)) + "." + to_string(int((ts-(int)ts) * 10)) + "ms";
+        cv::putText(img, ts_str, Point(IMAGE_WIDTH-150, 50), cv::FONT_ITALIC, 0.8, cv::Scalar(0, 255, 0), 1);
+        imshow("blobs", img);
+        waitKey(1);
+        // waitKey(0);
+#endif
     }
     return 0;
 }
