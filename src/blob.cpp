@@ -25,7 +25,7 @@ void Blob::updateBlob(double ts){              // update blob's information when
     // // delete both position and time.
     // for(auto it=events_.begin(); it!=events_.end();){
     //     // remove `old` and `far events to make the center update.
-    //     if((it->ts < ts - dt_)                                 // TODO: should use the newest ts.
+    //     if((it->ts < ts - dt_)
     //                 || (abs(it->x - x_) > FLAGS_blob_radius/2)
     //                 || (abs(it->y - y_) > FLAGS_blob_radius/2)){
     //         it = events_.erase(it);

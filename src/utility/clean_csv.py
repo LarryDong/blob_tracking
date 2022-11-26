@@ -1,4 +1,6 @@
 
+# a script to convert a csv file to a clean csv file
+
 import pandas as pd
 import numpy as np
 

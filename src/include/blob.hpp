@@ -15,13 +15,12 @@ public:
     Blob(const Event& e);
     ~Blob() {}
     void updateBlob(double ts);
-    int addEvent(const Event& evt);            // 
-    bool checkAndSetDead(double ts);          // check the blob is dead or not.
+    int addEvent(const Event& evt);
+    bool checkAndSetDead(double ts);
 
     inline void printInfo(void) const { 
         cout << "id: " << id_ << ", inited/dead:"<<is_inited_<<"/"<<is_dead_<<", (" << x_ << ", " << y_ << "), active: " << active_events_number_ << endl;
     }
-
     Blob &operator=(const Blob &b) { 
         this->id_ = b.id_; 
         this->events_ = b.events_;
@@ -48,7 +47,6 @@ public:
 class BlobManager{
 public:
     BlobManager(int radius);
-    int checkBlob(const Event& e);
     int createBlob(const Event& e);
     int findNearestBlob(const Event &e);
     int updateAllBlobs(double ts);

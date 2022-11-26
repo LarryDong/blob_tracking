@@ -2,7 +2,7 @@
 event-based blob tracking
 
 
+## Usage
+`gflags` is needed for parameter settings.   
+Download and compile: [here](https://github.com/gflags/gflags).
 
-### TODOs:
-1. A better blob's event restore data structure.
-2. Draw Image&blobs.

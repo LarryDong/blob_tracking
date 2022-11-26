@@ -118,7 +118,6 @@ int main(int argc, char** argv){
     cout << "Blob tracking." << endl;
 
     // Load events
-    // string path = "/home/larrydong/codeGit/blob_tracking/data/1.csv";
     string path = "/home/larrydong/codeGit/blob_tracking/src/night2_output.csv";
     string event_frame_folder = "/home/larrydong/codeGit/blob_tracking/night_people/images";
     vector<Event> full_events = loadEvents(path);
